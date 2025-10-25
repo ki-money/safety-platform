@@ -19,7 +19,7 @@
 name: Build and deploy Flask app to Azure Web App
 
 env:
-  AZURE_WEBAPP_NAME: citizen-safety-platform  # Use your actual Azure Web App name (no spaces)
+  AZURE_WEBAPP_NAME: safety-platform  # Use your actual Azure Web App name (no spaces)
   PYTHON_VERSION: '3.10'
 
 on:
