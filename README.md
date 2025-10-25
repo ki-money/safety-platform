@@ -20,5 +20,5 @@ Citizens can report crimes and emergencies without revealing identity, while pol
 - Frontend: Bootstrap 5, Leaflet.js (interactive maps)  
 - Security: Input sanitization, rate-limiting, secure sessions
 
-   git clone https://github.com/kimoney/safety-platform.git
+   git clone https://github.com/ki-money/safety-platform.git
    cd safety-platform
