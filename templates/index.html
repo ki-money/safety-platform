@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="{{ lang[:2] }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ t.platform_title }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .hero-section {
+            background: linear-gradient(135deg, #dc3545, #343a40);
+            color: white;
+            padding: 80px 0;
+            text-align: center;
+        }
+        .hero-section h1 { font-size: 2.5rem; font-weight: 700; }
+        .feature-card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .feature-card:hover { transform: translateY(-5px); }
+        .svg-icon { width: 48px; height: 48px; margin-bottom: 1rem; }
+        footer { background: #343a40; color: white; padding: 20px 0; }
+        .language-selector {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        .nav-tabs {
+            border-bottom: 2px solid #dee2e6;
+            margin-bottom: 30px;
+        }
+        .nav-tabs .nav-link {
+            border: none;
+            color: #6c757d;
+            padding: 15px 25px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        .nav-tabs .nav-link:hover {
+            color: #dc3545;
+            border-bottom: 3px solid #dc3545;
+        }
+        .nav-tabs .nav-link.active {
+            color: #dc3545;
+            background: transparent;
+            border-bottom: 3px solid #dc3545;
+        }
+        .tab-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        .track-section {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        .search-box {
+            position: relative;
+        }
+        .search-box input {
+            padding-right: 60px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            padding: 15px 20px;
+        }
+        .search-box input:focus {
+            border-color: #dc3545;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+        }
+        .search-btn {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 10px 20px;
+            background: #dc3545;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+        }
+        .search-btn:hover {
+            background: #c82333;
+        }
+        .report-result {
+            display: none;
+            margin-top: 30px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #dc3545;
+        }
+        .report-result.show {
+            display: block;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status-investigating {
+            background: #cce5ff;
+            color: #004085;
+        }
+        .status-resolved {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-closed {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <!-- Language Selector -->
+    <div class="language-selector">
+        <div class="dropdown">
+            <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                🌐 {{ lang }}
+            </button>
+            <ul class="dropdown-menu">
+                {% for available_lang in available_languages %}
+                <li><a class="dropdown-item {% if available_lang == lang %}active{% endif %}"
+                       href="/set_language/{{ available_lang }}">{{ available_lang }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <div class="hero-section">
+        <div class="container">
+            <h1>{{ t.platform_title }}</h1>
+            <p class="lead">{{ t.platform_subtitle }}</p>
+        </div>
+    </div>
+
+    <div class="container py-5">
+        <!-- Navigation Tabs -->
+        <ul class="nav nav-tabs justify-content-center" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="report-tab" data-bs-toggle="tab" data-bs-target="#report-panel" type="button">
+                    <svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 5v14M5 12h14"></path>
+                    </svg>
+                    Report Incident
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="track-tab" data-bs-toggle="tab" data-bs-target="#track-panel" type="button">
+                    <svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="M21 21l-4.35-4.35"></path>
+                    </svg>
+                    Track Report
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="map-tab" data-bs-toggle="tab" data-bs-target="#map-panel" type="button">
+                    <svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"></path>
+                    </svg>
+                    Safety Map
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="help-tab" data-bs-toggle="tab" data-bs-target="#help-panel" type="button">
+                    <svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                    Help
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content mt-4">
+            <!-- Report Incident Panel -->
+            <div class="tab-pane fade show active" id="report-panel">
+                <div class="row">
+                    <div class="col-md-4 mb-4">
+                        <div class="feature-card p-4 text-center bg-white">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
+                            </svg>
+                            <h5>{{ t.anonymous_reporting }}</h5>
+                            <p>{{ t.anonymous_reporting_desc }}</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="feature-card p-4 text-center bg-white">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path>
+                                <circle cx="12" cy="10" r="3"></circle>
+                            </svg>
+                            <h5>{{ t.local_response }}</h5>
+                            <p>{{ t.local_response_desc }}</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="feature-card p-4 text-center bg-white">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                            </svg>
+                            <h5>{{ t.easy_to_use }}</h5>
+                            <p>{{ t.easy_to_use_desc }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center mt-4">
+                    <a href="/report" class="btn btn-danger btn-lg px-5 py-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 8px;">
+                            <path d="M12 5v14M5 12h14"></path>
+                        </svg>
+                        {{ t.report_incident }}
+                    </a>
+                </div>
+            </div>
+
+            <!-- Track Report Panel -->
+            <div class="tab-pane fade" id="track-panel">
+                <div class="track-section">
+                    <h2 class="mb-4">Track Your Report</h2>
+                    <p class="text-muted mb-4">Enter your report reference number to check its status</p>
+
+                    <div class="search-box mb-3">
+                        <input type="text" id="reportId" class="form-control" placeholder="Enter your report reference number" maxlength="50">
+                        <button class="search-btn" onclick="trackReport()">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <path d="M21 21l-4.35-4.35"></path>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div id="reportResult" class="report-result">
+                        <h4 class="mb-3">Report Details</h4>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <strong>Report ID:</strong><br>
+                                <span id="resultId" class="text-monospace"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <strong>Status:</strong><br>
+                                <span id="resultStatus"></span>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <strong>Category:</strong><br>
+                                <span id="resultCategory"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <strong>Submitted:</strong><br>
+                                <span id="resultDate"></span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Location:</strong><br>
+                            <span id="resultLocation"></span>
+                        </div>
+                        <div id="responseSection" style="display: none;" class="mt-4 pt-4 border-top">
+                            <h5 class="mb-3">Police Response</h5>
+                            <div class="mb-2">
+                                <strong>Officer:</strong> <span id="resultOfficer"></span>
+                            </div>
+                            <div class="mb-2">
+                                <strong>Action Taken:</strong><br>
+                                <span id="resultAction"></span>
+                            </div>
+                            <div class="mb-2">
+                                <strong>Notes:</strong><br>
+                                <span id="resultNotes"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="notFoundMessage" class="alert alert-warning mt-3" style="display: none;">
+                        <strong>Report not found.</strong> Please check your reference number and try again.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Safety Map Panel -->
+            <div class="tab-pane fade" id="map-panel">
+                <div class="track-section">
+                    <h2 class="mb-4">Safety Map</h2>
+                    <p class="text-muted mb-4">View crime hotspots and safety information in your area</p>
+                    <div class="alert alert-info">
+                        <strong>Note:</strong> This feature is available to police stations. Citizens can report incidents which help identify high-risk areas.
+                    </div>
+                    <div class="text-center mt-4">
+                        <a href="/police/login" class="btn btn-primary">Police Login to View Map</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Help Panel -->
+            <div class="tab-pane fade" id="help-panel">
+                <div class="track-section">
+                    <h2 class="mb-4">Help & Information</h2>
+
+                    <div class="mb-4">
+                        <h5>Emergency Contact</h5>
+                        <p class="lead text-danger"><strong>📞 0725646760</strong></p>
+                        <p class="text-muted">For immediate emergencies, please call this number directly.</p>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-4">
+                        <h5>How to Report an Incident</h5>
+                        <ol>
+                            <li>Click on "Report Incident" tab</li>
+                            <li>Fill in the incident details (category, description, location)</li>
+                            <li>Optionally attach photos or videos</li>
+                            <li>Submit your report</li>
+                            <li>Save your Report ID to track status</li>
+                        </ol>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-4">
+                        <h5>Tracking Your Report</h5>
+                        <p>After submitting a report, you'll receive a unique Report ID. Use this ID in the "Track Report" tab to check the status of your report.</p>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-4">
+                        <h5> </h5>
+                        <div class="d-flex gap-2">
+                            <a href="/police/login" class="btn btn-outline-primary">{{ t.police_login }}</a>
+                            <a href="/admin/login" class="btn btn-outline-secondary">{{ t.admin_login }}</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="text-center mt-5">
+        <div class="container">
+            <p class="mb-0">{{ t.copyright }} &copy; 2025</p>
+            <p>{{ t.emergency_call }} 0725646760</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function trackReport() {
+            const reportId = document.getElementById('reportId').value.trim();
+
+            if (!reportId) {
+                alert('Please enter a report reference number');
+                return;
+            }
+
+            // Hide previous results
+            document.getElementById('reportResult').classList.remove('show');
+            document.getElementById('notFoundMessage').style.display = 'none';
+
+            // Make API call to track report
+            fetch(`/api/track_report/${reportId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Display report details
+                        document.getElementById('resultId').textContent = data.report.short_id || reportId;
+                        document.getElementById('resultCategory').textContent = data.report.category;
+                        document.getElementById('resultLocation').textContent = data.report.manual_location;
+                        document.getElementById('resultDate').textContent = new Date(data.report.created_at).toLocaleDateString();
+
+                        // Status with badge
+                        const statusBadge = `<span class="status-badge status-${data.report.status}">${data.report.status.toUpperCase()}</span>`;
+                        document.getElementById('resultStatus').innerHTML = statusBadge;
+
+                        // Show response if available
+                        if (data.report.officer_name) {
+                            document.getElementById('responseSection').style.display = 'block';
+                            document.getElementById('resultOfficer').textContent = data.report.officer_name || 'N/A';
+                            document.getElementById('resultAction').textContent = data.report.action_taken || 'N/A';
+                            document.getElementById('resultNotes').textContent = data.report.notes || 'No additional notes';
+                        } else {
+                            document.getElementById('responseSection').style.display = 'none';
+                        }
+
+                        document.getElementById('reportResult').classList.add('show');
+                    } else {
+                        document.getElementById('notFoundMessage').style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('notFoundMessage').style.display = 'block';
+                });
+        }
+
+        // Allow Enter key to trigger search
+        document.getElementById('reportId').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                trackReport();
+            }
+        });
+    </script>
+</body>
+</html>

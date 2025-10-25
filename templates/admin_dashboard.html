@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Police Station Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .stat-card {
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-5px); }
+        .station-active { border-left: 4px solid #28a745; }
+        .station-inactive { border-left: 4px solid #dc3545; }
+    </style>
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-dark bg-danger py-3">
+        <div class="container-fluid">
+            <div>
+                <h1 class="navbar-brand mb-0 h3">Nakuru County Admin Dashboard</h1>
+                <p class="text-white mb-0 opacity-75">Police Station Management & System Overview</p>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <a href="/admin/audit_logs" class="btn btn-light">Audit Logs</a>
+                <a href="/admin/settings" class="btn btn-light">Settings</a>
+                <a href="/admin/logout" class="btn btn-outline-light">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid py-4">
+        <!-- System Statistics -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="stat-card bg-primary text-white p-3">
+                    <h6 class="text-uppercase mb-1">Total Reports</h6>
+                    <h2 class="mb-0">{{ stats.total_reports }}</h2>
+                    <small>+{{ stats.reports_today }} today</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card bg-warning text-white p-3">
+                    <h6 class="text-uppercase mb-1">Pending</h6>
+                    <h2 class="mb-0">{{ stats.pending_reports }}</h2>
+                    <small>Awaiting action</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card bg-success text-white p-3">
+                    <h6 class="text-uppercase mb-1">Active Stations</h6>
+                    <h2 class="mb-0">{{ stats.active_stations }}</h2>
+                    <small>Operational</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card bg-info text-white p-3">
+                    <h6 class="text-uppercase mb-1">Resolution Rate</h6>
+                    <h2 class="mb-0">{{ stats.resolution_rate }}%</h2>
+                    <small>System-wide</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add New Station -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0">➕ Add New Police Station</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/admin/add_station">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label for="constituency" class="form-label">Constituency *</label>
+                            <input type="text" class="form-control" id="constituency" name="constituency"
+                                   placeholder="e.g., Nakuru East" required>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="username" class="form-label">Username *</label>
+                            <input type="text" class="form-control" id="username" name="username"
+                                   placeholder="e.g., nakurueast_pd" required>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="password" class="form-label">Password *</label>
+                            <input type="password" class="form-control" id="password" name="password"
+                                   placeholder="Secure password" required>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="preferred_language" class="form-label">Language</label>
+                            <select class="form-select" id="preferred_language" name="preferred_language">
+                                {% for lang in settings.languages %}
+                                <option value="{{ lang }}">{{ lang }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="contact_phone" class="form-label">Phone</label>
+                            <input type="text" class="form-control" id="contact_phone" name="contact_phone"
+                                   placeholder="07XXXXXXXX">
+                        </div>
+                        <div class="col-md-1">
+                            <label class="form-label">&nbsp;</label>
+                            <button type="submit" class="btn btn-primary w-100">Add</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Police Stations Management -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">🏛️ Manage Police Stations ({{ stations|length }})</h5>
+                <div>
+                    <button class="btn btn-sm btn-outline-success" onclick="filterStations('active')">Active</button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="filterStations('inactive')">Inactive</button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="filterStations('all')">All</button>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" id="stationsTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Status</th>
+                                <th>Constituency</th>
+                                <th>Username</th>
+                                <th>Language</th>
+                                <th>Contact Phone</th>
+                                <th>Contact Email</th>
+                                <th>Created</th>
+                                <th>Last Login</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for station in stations %}
+                            <tr class="{% if station.is_active %}station-active{% else %}station-inactive{% endif %}"
+                                data-active="{{ station.is_active }}">
+                                <td>
+                                    {% if station.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ station.constituency }}</td>
+                                <td>{{ station.username }}</td>
+                                <td>{{ station.preferred_language }}</td>
+                                <td>{{ station.contact_phone or 'N/A' }}</td>
+                                <td>{{ station.contact_email or 'N/A' }}</td>
+                                <td>{{ station.created_at }}</td>
+                                <td>{{ station.last_login or 'Never' }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editModal-{{ station.id }}">
+                                        Edit
+                                    </button>
+                                    {% if station.is_active %}
+                                    <button class="btn btn-sm btn-danger" onclick="deactivateStation({{ station.id }}, '{{ station.constituency }}')">
+                                        Deactivate
+                                    </button>
+                                    {% else %}
+                                    <button class="btn btn-sm btn-success" onclick="activateStation({{ station.id }}, '{{ station.constituency }}')">
+                                        Activate
+                                    </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <!-- Edit Modal -->
+                            <div class="modal fade" id="editModal-{{ station.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Edit {{ station.constituency }} Police Station</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <form method="POST" action="/admin/update_station/{{ station.id }}">
+                                                <div class="row">
+                                                    <div class="col-md-6 mb-3">
+                                                        <label class="form-label">Constituency *</label>
+                                                        <input type="text" class="form-control" name="constituency"
+                                                               value="{{ station.constituency }}" required>
+                                                    </div>
+                                                    <div class="col-md-6 mb-3">
+                                                        <label class="form-label">Username *</label>
+                                                        <input type="text" class="form-control" name="username"
+                                                               value="{{ station.username }}" required>
+                                                    </div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">New Password (optional)</label>
+                                                    <input type="password" class="form-control" name="password"
+                                                           placeholder="Leave blank to keep current">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Preferred Language</label>
+                                                    <select class="form-select" name="preferred_language">
+                                                        {% for lang in settings.languages %}
+                                                        <option value="{{ lang }}"
+                                                                {% if station.preferred_language == lang %}selected{% endif %}>
+                                                            {{ lang }}
+                                                        </option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-md-6 mb-3">
+                                                        <label class="form-label">Contact Phone</label>
+                                                        <input type="text" class="form-control" name="contact_phone"
+                                                               value="{{ station.contact_phone or '' }}"
+                                                               placeholder="07XXXXXXXX">
+                                                    </div>
+                                                    <div class="col-md-6 mb-3">
+                                                        <label class="form-label">Contact Email</label>
+                                                        <input type="email" class="form-control" name="contact_email"
+                                                               value="{{ station.contact_email or '' }}"
+                                                               placeholder="station@police.go.ke">
+                                                    </div>
+                                                </div>
+                                                <div class="alert alert-info">
+                                                    <small><strong>Note:</strong> Leave password blank if you don't want to change it.</small>
+                                                </div>
+                                                <div class="d-flex justify-content-end gap-2">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Information -->
+        <div class="card shadow-sm mt-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0">ℹ️ System Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <h6>Spam Detection</h6>
+                        <p><strong>Spam Threshold:</strong> {{ settings.spam_threshold }}/100</p>
+                        <p><strong>Auto-Reject:</strong> {{ settings.auto_reject_threshold }}/100</p>
+                        <p><strong>Spam Detected:</strong> {{ stats.spam_detected }} reports</p>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>Categories</h6>
+                        <p>{{ settings.categories|join(', ') }}</p>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>Supported Languages</h6>
+                        <p>{{ settings.languages|join(', ') }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function filterStations(type) {
+            const rows = document.querySelectorAll('#stationsTable tbody tr');
+            rows.forEach(row => {
+                const isActive = row.dataset.active === '1';  // Optimized data-active check
+                if (type === 'all') {
+                    row.style.display = '';
+                } else if (type === 'active') {
+                    row.style.display = isActive ? '' : 'none';
+                } else if (type === 'inactive') {
+                    row.style.display = !isActive ? '' : 'none';
+                }
+            });
+        }
+
+        function deactivateStation(stationId, name) {
+            if (confirm(`Deactivate ${name} Police Station? This will prevent login.`)) {
+                fetch(`/admin/deactivate_station/${stationId}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Station deactivated');
+                        window.location.reload();
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                })
+                .catch(error => alert('Error: ' + error));
+            }
+        }
+
+        function activateStation(stationId, name) {
+            if (confirm(`Activate ${name} Police Station?`)) {
+                fetch(`/admin/activate_station/${stationId}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Station activated');
+                        window.location.reload();
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                })
+                .catch(error => alert('Error: ' + error));
+            }
+        }
+    </script>
+</body>
+</html>
